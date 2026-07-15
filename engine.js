@@ -387,8 +387,8 @@
      flat lambert shading per face, depth fog, printed as a character
      ramp. Runs at half the camera framerate. */
   const asciiPre = document.getElementById('ascii-pyr');
-  const AW = 62, AH = 32;
-  const RAMP = ' .:-=+*#%@';
+  const AW = 72, AH = 40;
+  const RAMP = '.,-~:;=!*#$@';   // the donut.c luminance ramp
   const zbuf = new Float32Array(AW * AH);
   const cbuf = new Uint8Array(AW * AH);
   let asciiTick = 0;
@@ -397,22 +397,17 @@
     [0, -1.25, 0],                                  // apex
     [-1, 0.7, -1], [1, 0.7, -1], [1, 0.7, 1], [-1, 0.7, 1]
   ];
-  const PYR_F = [
-    [0, 2, 1], [0, 3, 2], [0, 4, 3], [0, 1, 4],     // sides
-    [1, 2, 3], [1, 3, 4]                            // base
+  const PYR_E = [
+    [0, 1], [0, 2], [0, 3], [0, 4],                 // slant edges
+    [1, 2], [2, 3], [3, 4], [4, 1]                  // base
   ];
-  const LIGHT = (() => {
-    const l = [-0.45, -0.75, -0.5];
-    const n = Math.hypot(l[0], l[1], l[2]);
-    return [l[0] / n, l[1] / n, l[2] / n];
-  })();
 
   function asciiFrame(now) {
     if (!asciiPre || (asciiTick++ & 1)) return;
-    const ry = now * 0.0009;
-    const rx = 0.42 + Math.sin(now * 0.00042) * 0.12;
-    const cy = Math.cos(ry), sy = Math.sin(ry);
-    const cx = Math.cos(rx), sx = Math.sin(rx);
+    // two free-running axes, donut style tumbling
+    const ra = now * 0.00085, rb = now * 0.00039;
+    const cy = Math.cos(ra), sy = Math.sin(ra);
+    const cx = Math.cos(rb), sx = Math.sin(rb);
 
     // rotate Y, then X, then push away from the camera
     const vs = PYR_V.map(v => {
@@ -420,54 +415,39 @@
       const z1 = -v[0] * sy + v[2] * cy;
       const y2 = v[1] * cx - z1 * sx;
       const z2 = v[1] * sx + z1 * cx;
-      return [x1, y2, z2 + 3.9];
+      return [x1, y2, z2 + 4.0];
     });
-    // perspective to grid coords (chars are ~2x taller than wide)
-    const F = 34;
-    const pts = vs.map(v => [
-      AW / 2 + (v[0] / v[2]) * F * 1.9,
-      AH / 2 + (v[1] / v[2]) * F * 1.02,
-      v[2]
-    ]);
 
     zbuf.fill(1e9); cbuf.fill(0);
+    const F = 28;   // chars are ~2x taller than wide, hence the 1.9 / 1.02 split
 
-    for (const f of PYR_F) {
-      const a = vs[f[0]], b = vs[f[1]], c = vs[f[2]];
-      // face normal in view space, backface cull
-      const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
-      const wx = c[0] - a[0], wy = c[1] - a[1], wz = c[2] - a[2];
-      let nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
-      const nl = Math.hypot(nx, ny, nz) || 1;
-      nx /= nl; ny /= nl; nz /= nl;
-      // camera sits at the origin looking +z: visible faces point back
-      const vx = (a[0] + b[0] + c[0]) / 3, vy = (a[1] + b[1] + c[1]) / 3, vz = (a[2] + b[2] + c[2]) / 3;
-      if (nx * vx + ny * vy + nz * vz > 0) continue;
-      const lum = Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
-
-      const p0 = pts[f[0]], p1 = pts[f[1]], p2 = pts[f[2]];
-      const minX = Math.max(0, Math.floor(Math.min(p0[0], p1[0], p2[0])));
-      const maxX = Math.min(AW - 1, Math.ceil(Math.max(p0[0], p1[0], p2[0])));
-      const minY = Math.max(0, Math.floor(Math.min(p0[1], p1[1], p2[1])));
-      const maxY = Math.min(AH - 1, Math.ceil(Math.max(p0[1], p1[1], p2[1])));
-      const d = (p1[1] - p2[1]) * (p0[0] - p2[0]) + (p2[0] - p1[0]) * (p0[1] - p2[1]);
-      if (Math.abs(d) < 1e-6) continue;
-
-      for (let gy = minY; gy <= maxY; gy++) {
-        for (let gx = minX; gx <= maxX; gx++) {
-          const w0 = ((p1[1] - p2[1]) * (gx - p2[0]) + (p2[0] - p1[0]) * (gy - p2[1])) / d;
-          const w1 = ((p2[1] - p0[1]) * (gx - p2[0]) + (p0[0] - p2[0]) * (gy - p2[1])) / d;
-          const w2 = 1 - w0 - w1;
-          if (w0 < 0 || w1 < 0 || w2 < 0) continue;
-          const z = w0 * p0[2] + w1 * p1[2] + w2 * p2[2];
-          const i = gy * AW + gx;
-          if (z >= zbuf[i]) continue;
-          zbuf[i] = z;
-          // lambert + ambient, dimmed by depth so the far edge recedes
-          const fog = Math.max(0.35, Math.min(1, 1.9 - z * 0.36));
-          const bright = Math.min(1, (0.18 + lum * 0.92) * fog);
-          cbuf[i] = 1 + Math.round(bright * (RAMP.length - 2));
-        }
+    // walk every edge, plot depth-lit samples: near edges glow at the
+    // bright end of the ramp, far edges sink toward the dim end
+    for (const e of PYR_E) {
+      const p = vs[e[0]], q = vs[e[1]];
+      const N = 90;
+      for (let i = 0; i <= N; i++) {
+        const t = i / N;
+        const x = p[0] + (q[0] - p[0]) * t;
+        const y = p[1] + (q[1] - p[1]) * t;
+        const z = p[2] + (q[2] - p[2]) * t;
+        const gx = Math.round(AW / 2 + (x / z) * F * 1.9);
+        const gy = Math.round(AH / 2 + (y / z) * F * 1.02);
+        if (gx < 0 || gx >= AW || gy < 0 || gy >= AH) continue;
+        const idx = gy * AW + gx;
+        if (z >= zbuf[idx]) continue;
+        zbuf[idx] = z;
+        const lum = Math.max(0, Math.min(1, (5.6 - z) / 3.1));
+        cbuf[idx] = 1 + Math.round(lum * (RAMP.length - 1));
+      }
+    }
+    // vertices always burn at full brightness, like the donut's hot spots
+    for (const v of vs) {
+      const gx = Math.round(AW / 2 + (v[0] / v[2]) * F * 1.9);
+      const gy = Math.round(AH / 2 + (v[1] / v[2]) * F * 1.02);
+      if (gx >= 0 && gx < AW && gy >= 0 && gy < AH) {
+        const idx = gy * AW + gx;
+        if (v[2] <= zbuf[idx]) { zbuf[idx] = v[2]; cbuf[idx] = RAMP.length; }
       }
     }
 
@@ -476,7 +456,7 @@
       let row = '';
       for (let gx = 0; gx < AW; gx++) {
         const c = cbuf[gy * AW + gx];
-        row += c === 0 ? ' ' : RAMP[c];
+        row += c === 0 ? ' ' : RAMP[c - 1];
       }
       out += row + '\n';
     }

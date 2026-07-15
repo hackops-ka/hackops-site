@@ -523,12 +523,12 @@ footer {
 .announce-win { width: 380px; }
 .announce-win h2 { font-size: 26px; }
 
-.pyr-win { width: 340px; cursor: default; }
+.pyr-win { width: 440px; cursor: default; }
 .pyr-win .win-body { padding: 12px 10px 10px; }
 #ascii-pyr {
   font-family: var(--font-mono);
-  font-size: 8px;
-  line-height: 8px;
+  font-size: 9px;
+  line-height: 9px;
   letter-spacing: 0;
   color: var(--sky);
   margin: 0 auto;
