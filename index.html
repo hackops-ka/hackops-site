@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Press+Start+2P&family=Hanken+Grotesk:wght@400;500;600;700&family=Fragment+Mono&display=swap" rel="stylesheet" />
 <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23fdf7fa"/><polygon points="16,4 29,27 3,27" fill="none" stroke="%23ef7fb1" stroke-width="2.5"/></svg>' />
 <link rel="preload" href="assets/good-times.otf" as="font" type="font/otf" crossorigin />
-<link rel="stylesheet" href="site.css?v=desktop-4" />
+<link rel="stylesheet" href="site.css?v=desktop-5" />
 <script>
   /* apply the saved theme before first paint so there is no flash */
   (function () {
@@ -95,8 +95,11 @@
       </div>
     </section>
 
-    <!-- 02 MICROPRINT: a whole page at 2% scale, hidden under the litany -->
-    <section class="microprint" data-stop="op000" data-label="op//000"
+    <!-- MICROPRINT: a whole page at 2% scale, hidden under the litany.
+         data-hidden keeps it out of the nav, the tab order and the tour;
+         the only ways in are free-zooming onto it, typing the magic word,
+         or worrying the pyramid (see engine.js) -->
+    <section class="microprint" data-stop="op000" data-label="op//000" data-hidden="1"
              data-x="6001" data-y="6062" data-scale="0.02"
              data-vw="13" data-vh="10" data-bearing="0">
       <h3>op<b>//</b>000 · the microprint</h3>
@@ -221,15 +224,11 @@
       <div class="cap">op000_render.png · 3d, not ai · blender</div>
     </section>
 
-    <section class="win pyr-win deco" style="--tbar: var(--purple)"
+    <section class="win pyr-win" style="--tbar: var(--purple)" data-interactive
              data-x="5150" data-y="7550" data-rot="9">
       <div class="win-title"><span class="t">pyramid1.fbx</span><span class="b">_</span><span class="b">&#9633;</span><span class="b">&times;</span></div>
       <div class="win-body">
-        <svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg" fill="none"
-             stroke="#85bede" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
-          <path d="M100 18 L172 118 L28 118 Z" />
-          <path d="M100 18 L118 132 M28 118 L118 132 L172 118" />
-        </svg>
+        <pre id="ascii-pyr" aria-hidden="true"></pre>
       </div>
     </section>
 
@@ -297,6 +296,6 @@
   <button id="lvl" type="button" title="Level the camera">&deg;</button>
 </div>
 
-<script src="engine.js?v=desktop-2"></script>
+<script src="engine.js?v=desktop-3"></script>
 </body>
 </html>

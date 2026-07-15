@@ -34,7 +34,7 @@
   });
 
   /* ---------------- stops / tour ---------------- */
-  const stops = [...document.querySelectorAll('[data-stop]')].map(el => ({
+  const mkStop = el => ({
     el,
     id: el.dataset.stop,
     label: el.dataset.label || el.dataset.stop,
@@ -44,7 +44,11 @@
     vh: +(el.dataset.vh || 600),
     bearing: (+(el.dataset.bearing || 0)) * Math.PI / 180,
     s: 1
-  }));
+  });
+  const stopEls = [...document.querySelectorAll('[data-stop]')];
+  // hidden stops exist in the world but not in the nav, tab order or tour
+  const stops = stopEls.filter(el => !el.dataset.hidden).map(mkStop);
+  const hiddenStops = stopEls.filter(el => el.dataset.hidden).map(mkStop);
 
   function landScale(st) {
     // a hidden or collapsed viewport reports 0x0; a zero scale would
@@ -52,7 +56,10 @@
     const s = Math.min(innerWidth / st.vw, innerHeight / st.vh) * 0.85;
     return (isFinite(s) && s > 0) ? s : 0.5;
   }
-  function computeScales() { stops.forEach(st => { st.s = landScale(st); }); }
+  function computeScales() {
+    stops.forEach(st => { st.s = landScale(st); });
+    hiddenStops.forEach(st => { st.s = landScale(st); });
+  }
 
   /* ---------------- camera ---------------- */
   const cam = { x: 0, y: 0, s: 0.1, r: 0 };
@@ -175,15 +182,32 @@
   }
 
   /* ---------------- flight ---------------- */
+  let flight = null; // off-tour flight, used for the hidden dive
+
   function flyTo(i) {
     dismissHint();
+    flight = null;
     tourMode = true;
     targetU = i;
     if (reduceMotion) { u = i; const p = pathAt(u); Object.assign(cam, p); }
   }
+
+  function startFlight(st) {
+    dismissHint();
+    tourMode = false;
+    flight = {
+      t: 0,
+      A: { x: cam.x, y: cam.y, s: cam.s, r: cam.r },
+      B: { x: st.x, y: st.y, s: st.s, r: st.bearing }
+    };
+    if (reduceMotion) { Object.assign(cam, flight.B); flight = null; }
+  }
+
   window.hackops = { flyTo: id => {
     const i = stops.findIndex(s => s.id === id);
-    if (i >= 0) flyTo(i);
+    if (i >= 0) { flyTo(i); return; }
+    const h = hiddenStops.find(s => s.id === id);
+    if (h) startFlight(h);
   }};
 
   function nextStop(dir) {
@@ -205,6 +229,7 @@
       freeZoom(Math.exp(-e.deltaY * 0.0022), e.clientX, e.clientY);
       return;
     }
+    flight = null;
     tourMode = true;
     targetU = Math.max(0, Math.min(stops.length - 1,
       targetU + e.deltaY * 0.0011));
@@ -212,6 +237,7 @@
 
   function freeZoom(f, px, py) {
     tourMode = false;
+    flight = null;
     const cx = innerWidth / 2, cy = innerHeight / 2;
     const cos = Math.cos(cam.r), sin = Math.sin(cam.r);
     const dx = px - cx, dy = py - cy;
@@ -259,6 +285,7 @@
     if (moved) {
       dismissHint();
       tourMode = false;
+      flight = null;
       const cos = Math.cos(cam.r), sin = Math.sin(cam.r);
       cam.x -= (dx * cos + dy * sin) / cam.s;
       cam.y -= (-dx * sin + dy * cos) / cam.s;
@@ -334,6 +361,128 @@
     });
   }
 
+  /* ---------------- hidden entrances to op//000 ----------------
+     No chip, no tab stop, no tour leg. Ways in:
+     1. free-zoom onto the microprint under the litany
+     2. type the magic word anywhere
+     3. worry the pyramid: five clicks on pyramid1.fbx within 3s */
+  let typed = '';
+  addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
+    typed = (typed + e.key.toLowerCase()).slice(-8);
+    if (typed.endsWith('slop')) { typed = ''; window.hackops.flyTo('op000'); }
+  });
+
+  const pyrWin = document.querySelector('.pyr-win');
+  let pyrTaps = 0, pyrTapT = 0;
+  if (pyrWin) pyrWin.addEventListener('click', () => {
+    const now = performance.now();
+    if (now - pyrTapT > 3000) pyrTaps = 0;
+    pyrTapT = now;
+    if (++pyrTaps >= 5) { pyrTaps = 0; window.hackops.flyTo('op000'); }
+  });
+
+  /* ---------------- pyramid1.fbx: ascii 3d viewer ----------------
+     A software-rendered square pyramid: z-buffered triangle raster,
+     flat lambert shading per face, depth fog, printed as a character
+     ramp. Runs at half the camera framerate. */
+  const asciiPre = document.getElementById('ascii-pyr');
+  const AW = 62, AH = 32;
+  const RAMP = ' .:-=+*#%@';
+  const zbuf = new Float32Array(AW * AH);
+  const cbuf = new Uint8Array(AW * AH);
+  let asciiTick = 0;
+
+  const PYR_V = [
+    [0, -1.25, 0],                                  // apex
+    [-1, 0.7, -1], [1, 0.7, -1], [1, 0.7, 1], [-1, 0.7, 1]
+  ];
+  const PYR_F = [
+    [0, 2, 1], [0, 3, 2], [0, 4, 3], [0, 1, 4],     // sides
+    [1, 2, 3], [1, 3, 4]                            // base
+  ];
+  const LIGHT = (() => {
+    const l = [-0.45, -0.75, -0.5];
+    const n = Math.hypot(l[0], l[1], l[2]);
+    return [l[0] / n, l[1] / n, l[2] / n];
+  })();
+
+  function asciiFrame(now) {
+    if (!asciiPre || (asciiTick++ & 1)) return;
+    const ry = now * 0.0009;
+    const rx = 0.42 + Math.sin(now * 0.00042) * 0.12;
+    const cy = Math.cos(ry), sy = Math.sin(ry);
+    const cx = Math.cos(rx), sx = Math.sin(rx);
+
+    // rotate Y, then X, then push away from the camera
+    const vs = PYR_V.map(v => {
+      const x1 = v[0] * cy + v[2] * sy;
+      const z1 = -v[0] * sy + v[2] * cy;
+      const y2 = v[1] * cx - z1 * sx;
+      const z2 = v[1] * sx + z1 * cx;
+      return [x1, y2, z2 + 3.9];
+    });
+    // perspective to grid coords (chars are ~2x taller than wide)
+    const F = 34;
+    const pts = vs.map(v => [
+      AW / 2 + (v[0] / v[2]) * F * 1.9,
+      AH / 2 + (v[1] / v[2]) * F * 1.02,
+      v[2]
+    ]);
+
+    zbuf.fill(1e9); cbuf.fill(0);
+
+    for (const f of PYR_F) {
+      const a = vs[f[0]], b = vs[f[1]], c = vs[f[2]];
+      // face normal in view space, backface cull
+      const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
+      const wx = c[0] - a[0], wy = c[1] - a[1], wz = c[2] - a[2];
+      let nx = uy * wz - uz * wy, ny = uz * wx - ux * wz, nz = ux * wy - uy * wx;
+      const nl = Math.hypot(nx, ny, nz) || 1;
+      nx /= nl; ny /= nl; nz /= nl;
+      // camera sits at the origin looking +z: visible faces point back
+      const vx = (a[0] + b[0] + c[0]) / 3, vy = (a[1] + b[1] + c[1]) / 3, vz = (a[2] + b[2] + c[2]) / 3;
+      if (nx * vx + ny * vy + nz * vz > 0) continue;
+      const lum = Math.max(0, nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2]);
+
+      const p0 = pts[f[0]], p1 = pts[f[1]], p2 = pts[f[2]];
+      const minX = Math.max(0, Math.floor(Math.min(p0[0], p1[0], p2[0])));
+      const maxX = Math.min(AW - 1, Math.ceil(Math.max(p0[0], p1[0], p2[0])));
+      const minY = Math.max(0, Math.floor(Math.min(p0[1], p1[1], p2[1])));
+      const maxY = Math.min(AH - 1, Math.ceil(Math.max(p0[1], p1[1], p2[1])));
+      const d = (p1[1] - p2[1]) * (p0[0] - p2[0]) + (p2[0] - p1[0]) * (p0[1] - p2[1]);
+      if (Math.abs(d) < 1e-6) continue;
+
+      for (let gy = minY; gy <= maxY; gy++) {
+        for (let gx = minX; gx <= maxX; gx++) {
+          const w0 = ((p1[1] - p2[1]) * (gx - p2[0]) + (p2[0] - p1[0]) * (gy - p2[1])) / d;
+          const w1 = ((p2[1] - p0[1]) * (gx - p2[0]) + (p0[0] - p2[0]) * (gy - p2[1])) / d;
+          const w2 = 1 - w0 - w1;
+          if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+          const z = w0 * p0[2] + w1 * p1[2] + w2 * p2[2];
+          const i = gy * AW + gx;
+          if (z >= zbuf[i]) continue;
+          zbuf[i] = z;
+          // lambert + ambient, dimmed by depth so the far edge recedes
+          const fog = Math.max(0.35, Math.min(1, 1.9 - z * 0.36));
+          const bright = Math.min(1, (0.18 + lum * 0.92) * fog);
+          cbuf[i] = 1 + Math.round(bright * (RAMP.length - 2));
+        }
+      }
+    }
+
+    let out = '';
+    for (let gy = 0; gy < AH; gy++) {
+      let row = '';
+      for (let gx = 0; gx < AW; gx++) {
+        const c = cbuf[gy * AW + gx];
+        row += c === 0 ? ' ' : RAMP[c];
+      }
+      out += row + '\n';
+    }
+    asciiPre.textContent = out;
+  }
+
   /* ---------------- main loop ---------------- */
   let last = performance.now();
   function rafLoop(now) { frame(now); requestAnimationFrame(rafLoop); }
@@ -354,7 +503,26 @@
       while (dr > Math.PI) dr -= 2 * Math.PI;
       while (dr < -Math.PI) dr += 2 * Math.PI;
       cam.r += dr * ck;
+    } else if (flight) {
+      // off-tour dive: same camera grammar as a tour leg
+      flight.t = Math.min(1, flight.t + dt / 2.4);
+      const t = flight.t * flight.t * (3 - 2 * flight.t);
+      const A = flight.A, B = flight.B;
+      const dist = Math.hypot(B.x - A.x, B.y - A.y);
+      const la = Math.log(A.s), lb = Math.log(B.s);
+      const lm = Math.min(la, lb) - Math.log(1 + dist / 2600);
+      const omt = 1 - t;
+      cam.x = A.x + (B.x - A.x) * t;
+      cam.y = A.y + (B.y - A.y) * t;
+      cam.s = Math.exp(omt * omt * la + 2 * omt * t * lm + t * t * lb);
+      let dr = B.r - A.r;
+      while (dr > Math.PI) dr -= 2 * Math.PI;
+      while (dr < -Math.PI) dr += 2 * Math.PI;
+      cam.r = A.r + dr * t;
+      if (flight.t >= 1) flight = null;
     }
+
+    asciiFrame(now);
 
     // never let a NaN camera survive a frame: snap back onto the tour
     if (!isFinite(cam.s) || cam.s <= 0 || !isFinite(cam.x) || !isFinite(cam.y) || !isFinite(cam.r)) {

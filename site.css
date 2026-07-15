@@ -523,8 +523,19 @@ footer {
 .announce-win { width: 380px; }
 .announce-win h2 { font-size: 26px; }
 
-.pyr-win { width: 340px; }
-.pyr-win svg { display: block; width: 100%; height: auto; }
+.pyr-win { width: 340px; cursor: default; }
+.pyr-win .win-body { padding: 12px 10px 10px; }
+#ascii-pyr {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  line-height: 8px;
+  letter-spacing: 0;
+  color: var(--sky);
+  margin: 0 auto;
+  width: fit-content;
+  user-select: none;
+  text-shadow: 0 0 6px color-mix(in srgb, var(--sky) 45%, transparent);
+}
 
 .load-win { width: 380px; }
 .load-win .lbl {
