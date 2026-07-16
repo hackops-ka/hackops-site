@@ -13,9 +13,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Press+Start+2P&family=Hanken+Grotesk:wght@400;500;600;700&family=Fragment+Mono&display=swap" rel="stylesheet" />
-<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" fill="%23fdf7fa"/><polygon points="16,4 29,27 3,27" fill="none" stroke="%23ef7fb1" stroke-width="2.5"/></svg>' />
+<!-- a real crawlable PNG favicon: Google Search ignores data: URI
+     icons, it needs a fetchable file, at least 48x48, multiple of 48 -->
+<link rel="icon" type="image/png" sizes="96x96" href="/favicon.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 <link rel="preload" href="assets/good-times.otf" as="font" type="font/otf" crossorigin />
-<link rel="stylesheet" href="site.css?v=desktop-6" />
+<link rel="stylesheet" href="site.css?v=desktop-8" />
 <script>
   /* apply the saved theme before first paint so there is no flash */
   (function () {
@@ -57,9 +60,13 @@
        ============================================================== -->
   <div id="world">
 
-    <!-- 01 HOME: ink printed straight on the desktop -->
+    <!-- 01 HOME: ink printed straight on the desktop.
+         data-cx-m etc. retarget only the CAMERA on phones: a portrait
+         frame over the (CSS-shrunk) hero column and the signup card
+         that data-x-m parks right beneath it -->
     <section class="stop-home" data-stop="home" data-label="hack//ops"
-             data-x="6000" data-y="5400" data-vw="1600" data-vh="1100" data-bearing="0">
+             data-x="6000" data-y="5400" data-vw="1600" data-vh="1100" data-bearing="0"
+             data-cx-m="6000" data-cy-m="5600" data-vw-m="600" data-vh-m="950">
       <p class="home-tag">karlsruhe builds here.</p>
       <h1 class="home-title">hack<b>//</b>ops</h1>
       <p class="home-blurb">
@@ -81,9 +88,11 @@
       <p class="home-foot">scroll to fly · 49.0069 N · 8.4037 E</p>
     </section>
 
-    <!-- the signup dialog: pinned into the home view, impossible to miss -->
+    <!-- the signup dialog: pinned into the home view, impossible to miss;
+         on phones it moves from beside the hero to directly below it -->
     <section class="win announce-win" style="--tbar: var(--pink)"
-             data-x="6540" data-y="5060" data-rot="4">
+             data-x="6540" data-y="5060" data-rot="4"
+             data-x-m="6000" data-y-m="5860" data-rot-m="0">
       <div class="win-title"><span class="t">op002_signup.exe</span><span class="b">_</span><span class="b">&#9633;</span><span class="b">&times;</span></div>
       <div class="win-body">
         <p class="mono">incoming transmission</p>
@@ -224,9 +233,11 @@
       <div class="cap">op000_render.png · 3d, not ai · blender</div>
     </section>
 
-    <!-- printed into the home view, right under the signup dialog -->
+    <!-- printed into the home view, right under the signup dialog;
+         nudged outward on phones so it does not poke into the frame -->
     <section class="win pyr-win" style="--tbar: var(--purple)" data-interactive
-             data-x="6520" data-y="5640" data-rot="-3">
+             data-x="6520" data-y="5640" data-rot="-3"
+             data-x-m="6800" data-y-m="5640">
       <div class="win-title"><span class="t">pyramid1.fbx</span><span class="b">_</span><span class="b">&#9633;</span><span class="b">&times;</span></div>
       <div class="win-body">
         <pre id="ascii-pyr" aria-hidden="true"></pre>
@@ -297,6 +308,6 @@
   <button id="lvl" type="button" title="Level the camera">&deg;</button>
 </div>
 
-<script src="engine.js?v=desktop-4"></script>
+<script src="engine.js?v=desktop-5"></script>
 </body>
 </html>

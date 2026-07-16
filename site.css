@@ -637,4 +637,15 @@ noscript .ns {
   .wordmark { font-size: 13px; }
   .chip { padding: 5px 10px; font-size: 10px; }
   #hud { font-size: 9px; }
+
+  /* portrait home: the hero column narrows from 1500 to 560 world
+     units so the camera's portrait frame (see the home stop's
+     data-*-m) can show it at a readable size, with the signup card
+     parked directly below. Nothing is hidden, only rescaled. */
+  .stop-home { width: 560px; }
+  .home-tag { font-size: 12px; letter-spacing: 0.28em; margin: 0 0 10px; }
+  .home-title { font-size: 44px; margin: 0 0 16px; }
+  .home-blurb { font-size: 18px; margin: 0 0 20px; }
+  .runs-list span { font-size: 24px; }
+  .home-foot { font-size: 11px; margin-top: 20px; }
 }

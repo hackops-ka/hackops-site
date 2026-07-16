@@ -19,32 +19,50 @@
 
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const coarse = matchMedia('(pointer: coarse)').matches;
+  // same cutoff as the CSS mobile breakpoint, checked live (not cached)
+  // so rotating a phone or narrowing a window re-derives the layout
+  const isMobileLayout = () => innerWidth <= 640;
 
-  /* ---------------- placed items ---------------- */
+  /* ---------------- placed items ----------------
+     An element may carry data-x-m / data-y-m / data-rot-m: a mobile
+     placement override, used below the 640px breakpoint. Elements
+     without the override never move. */
   const items = [...document.querySelectorAll('[data-x]')];
-  items.forEach(el => {
-    const x = +el.dataset.x, y = +el.dataset.y;
-    const rot = +(el.dataset.rot || 0);
-    const sc = +(el.dataset.scale || 1);
-    el.style.position = 'absolute';
-    el.style.left = x + 'px';
-    el.style.top = y + 'px';
-    el.style.transform =
-      `translate(-50%,-50%) rotate(${rot}deg) scale(${sc})`;
-  });
+  function placeItems() {
+    const mobile = isMobileLayout();
+    items.forEach(el => {
+      const x = +((mobile && el.dataset.xM) || el.dataset.x);
+      const y = +((mobile && el.dataset.yM) || el.dataset.y);
+      const rot = +((mobile && el.dataset.rotM) || el.dataset.rot || 0);
+      const sc = +(el.dataset.scale || 1);
+      el.style.position = 'absolute';
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      el.style.transform =
+        `translate(-50%,-50%) rotate(${rot}deg) scale(${sc})`;
+    });
+  }
 
-  /* ---------------- stops / tour ---------------- */
-  const mkStop = el => ({
-    el,
-    id: el.dataset.stop,
-    label: el.dataset.label || el.dataset.stop,
-    x: +el.dataset.x,
-    y: +el.dataset.y,
-    vw: +(el.dataset.vw || 800),
-    vh: +(el.dataset.vh || 600),
-    bearing: (+(el.dataset.bearing || 0)) * Math.PI / 180,
-    s: 1
-  });
+  /* ---------------- stops / tour ----------------
+     A stop's camera target reads data-cx-m / data-cy-m / data-vw-m /
+     data-vh-m: deliberately NOT data-x-m/y-m, which placeItems() uses
+     for that same element's own position. A stop is a camera bookmark,
+     not necessarily wherever its element sits. */
+  const mkStop = el => {
+    const mobile = isMobileLayout();
+    const x = (mobile && el.dataset.cxM) || el.dataset.x;
+    const y = (mobile && el.dataset.cyM) || el.dataset.y;
+    const vw = (mobile && el.dataset.vwM) || el.dataset.vw || 800;
+    const vh = (mobile && el.dataset.vhM) || el.dataset.vh || 600;
+    return {
+      el,
+      id: el.dataset.stop,
+      label: el.dataset.label || el.dataset.stop,
+      x: +x, y: +y, vw: +vw, vh: +vh,
+      bearing: (+(el.dataset.bearing || 0)) * Math.PI / 180,
+      s: 1
+    };
+  };
   const stopEls = [...document.querySelectorAll('[data-stop]')];
   // hidden stops exist in the world but not in the nav, tab order or tour
   const stops = stopEls.filter(el => !el.dataset.hidden).map(mkStop);
@@ -57,8 +75,10 @@
     return (isFinite(s) && s > 0) ? s : 0.5;
   }
   function computeScales() {
-    stops.forEach(st => { st.s = landScale(st); });
-    hiddenStops.forEach(st => { st.s = landScale(st); });
+    // re-derive the full frame (not just scale): crossing the mobile
+    // breakpoint mid-session must pick up the -m overrides too
+    stops.forEach(st => { Object.assign(st, mkStop(st.el)); st.s = landScale(st); });
+    hiddenStops.forEach(st => { Object.assign(st, mkStop(st.el)); st.s = landScale(st); });
   }
 
   /* ---------------- camera ---------------- */
@@ -517,6 +537,7 @@
 
   /* ---------------- boot ---------------- */
   function boot() {
+    placeItems();
     computeScales();
     buildNav();
     const p0 = pathAt(0);
@@ -535,7 +556,7 @@
     }, 250);
   }
 
-  addEventListener('resize', () => { computeScales(); });
+  addEventListener('resize', () => { placeItems(); computeScales(); });
 
   boot();
 })();
