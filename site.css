@@ -520,8 +520,27 @@ footer {
   text-transform: uppercase;
   opacity: 0.85;
 }
-.announce-win { width: 380px; }
-.announce-win h2 { font-size: 26px; }
+/* the slopathon signup card: bigger than every other window on the
+   desktop and the only one with a pink border + a slow pulse, so it
+   reads as "look here" at a glance, at any camera scale */
+.announce-win {
+  width: 560px;
+  border-color: var(--pink);
+  animation: announce-pulse 2.4s ease-in-out infinite;
+}
+@keyframes announce-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pink) 30%, transparent), var(--pane-shadow); }
+  50%      { box-shadow: 0 0 0 7px color-mix(in srgb, var(--pink) 55%, transparent), var(--pane-shadow); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .announce-win { animation: none; }
+}
+.announce-win .win-body { padding: 32px 34px 36px; }
+.announce-win p.mono { font-size: 13px; }
+.announce-win h2 { font-size: 42px; }
+.announce-win .win-body > p:not(.mono) { font-size: 18px; line-height: 1.55; }
+.announce-win .luma-btn { font-size: 15px; padding: 20px; }
+.announce-win .luma-btn .sub { font-size: 12px; }
 
 .pyr-win { width: 440px; cursor: default; }
 .pyr-win .win-body { padding: 12px 10px 10px; }
