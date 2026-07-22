@@ -543,27 +543,28 @@ footer {
 .announce-win .luma-btn .sub { font-size: 12px; }
 
 /* ---------------- op//002 vote widget ---------------- */
-.vote-win { width: 400px; }
+.vote-win { width: 500px; }
+.vote-win .win-body { padding: 28px 28px 30px; }
 .vote-h {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 32px;
   text-transform: lowercase;
   font-weight: 400;
   color: var(--ink-body);
-  margin: 6px 0 10px;
+  margin: 6px 0 12px;
 }
 .vote-countdown {
   font-family: var(--font-mono);
-  font-size: 34px;
+  font-size: 42px;
   letter-spacing: 0.06em;
   color: var(--gold);
 }
 .vote-sub {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   color: var(--ink);
-  margin-top: 10px;
+  margin-top: 12px;
 }
 /* the in-world card while voting is open: one button, nothing to
    miss-tap. The real choice happens in the fixed-position modal
@@ -572,15 +573,15 @@ footer {
   display: block;
   width: 100%;
   font-family: var(--font-pixel);
-  font-size: 12px;
+  font-size: 15px;
   letter-spacing: 0.06em;
   text-align: center;
   color: #fff;
   background: var(--gold);
   border: 1px solid var(--line-2);
   box-shadow: 3px 3px 0 var(--ink-body);
-  padding: 16px;
-  margin-top: 10px;
+  padding: 20px;
+  margin-top: 14px;
   cursor: pointer;
   transition: transform .12s, box-shadow .12s, filter .12s;
 }
@@ -830,8 +831,12 @@ noscript .ns {
   .pyr-win .win-body { padding: 10px 8px 8px; }
   #ascii-pyr { font-size: 6px; line-height: 6px; }
 
-  .vote-win { width: 340px; }
-  .vote-countdown { font-size: 28px; }
+  .vote-win { width: 420px; }
+  .vote-win .win-body { padding: 22px 20px 24px; }
+  .vote-h { font-size: 26px; }
+  .vote-countdown { font-size: 34px; }
+  .vote-sub { font-size: 12px; }
+  .vote-cta-btn { font-size: 14px; padding: 18px; }
 
   /* the confirm modal is already viewport-sized, not world-scaled --
      on phones just make everything inside it a little bigger and

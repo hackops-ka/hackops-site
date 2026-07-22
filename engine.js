@@ -44,14 +44,17 @@
   }
 
   /* ---------------- stops / tour ----------------
-     A stop's camera target reads data-cx-m / data-cy-m / data-vw-m /
-     data-vh-m: deliberately NOT data-x-m/y-m, which placeItems() uses
-     for that same element's own position. A stop is a camera bookmark,
-     not necessarily wherever its element sits. */
+     A stop's camera target reads data-cx/data-cy (any viewport) and
+     data-cx-m/data-cy-m (mobile only, wins when present): deliberately
+     NOT data-x/y or data-x-m/y-m, which placeItems() uses for that
+     same element's own position. A stop is a camera bookmark, not
+     necessarily wherever its element sits -- this is what lets the
+     home stop's camera recenter on its whole card cluster without
+     dragging the title block along with it. */
   const mkStop = el => {
     const mobile = isMobileLayout();
-    const x = (mobile && el.dataset.cxM) || el.dataset.x;
-    const y = (mobile && el.dataset.cyM) || el.dataset.y;
+    const x = (mobile && el.dataset.cxM) || el.dataset.cx || el.dataset.x;
+    const y = (mobile && el.dataset.cyM) || el.dataset.cy || el.dataset.y;
     const vw = (mobile && el.dataset.vwM) || el.dataset.vw || 800;
     const vh = (mobile && el.dataset.vhM) || el.dataset.vh || 600;
     return {
